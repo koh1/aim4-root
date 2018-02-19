@@ -290,7 +290,7 @@ public class V2IManager extends IntersectionManager
     // Third, allow the reservation grid manager to act
     reservationGridManager.act(timeStep);
     long stepEndTime = System.nanoTime();
-    logger.info("V2I_MSG_PROCESSED_PER_STEP " + (stepEndTime - stepStartTime)/1000.0);
+    logger.info("V2I_MSG_PROCESSED_PER_STEP " + (stepEndTime - stepStartTime)/1000.0 + " " + counter);
     // Advance current time.
     super.act(timeStep);
   }
