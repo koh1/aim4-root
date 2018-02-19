@@ -55,11 +55,14 @@ import aim4.msg.v2i.Request.Proposal;
 import aim4.sim.StatCollector;
 import aim4.util.Util;
 
+import org.apache.log4j.Logger;
+
 
 /**
  * The batch mode request handler.
  */
 public class BatchModeRequestHandler implements RequestHandler {
+	private Logger logger = Logger.getLogger(BatchModeRequestHandler.class);
 
   /////////////////////////////////
   // CONSTANTS
@@ -436,8 +439,10 @@ public class BatchModeRequestHandler implements RequestHandler {
    */
   @Override
   public void processRequestMsg(Request msg) {
+    long startTime = System.currentTimeMillis();
+    long endTime = 0;
     int vin = msg.getVin();
-
+    
     if (requestSC!=null) requestSC.incrTotalNumOfRequest();
 
     // If the vehicle has got a reservation already, reject it.
@@ -447,7 +452,10 @@ public class BatchModeRequestHandler implements RequestHandler {
                                msg.getRequestId(),
                                Reject.Reason.CONFIRMED_ANOTHER_REQUEST);
       if (requestSC!=null) requestSC.incrNumOfConfirmedAnotherRequest();
+      endTime = System.currentTimeMillis();
+      logger.info("calc time: " + (endTime - startTime));
       return;
+
     }
 
     // First, remove the proposals of the vehicle (if any) in the queue.
@@ -466,6 +474,8 @@ public class BatchModeRequestHandler implements RequestHandler {
       basePolicy.sendRejectMsg(vin,
                                msg.getRequestId(),
                                filterResult.getReason());
+      endTime = System.currentTimeMillis();
+      logger.info("calc time: " + (endTime - startTime));
       return;
     }
 
@@ -488,6 +498,8 @@ public class BatchModeRequestHandler implements RequestHandler {
       putProposalsIntoQueue(msg, currentTime);
       if (requestSC!=null) requestSC.incrNumOfQueuedRequest();
     }
+    endTime = System.currentTimeMillis();
+    logger.info("calc time: " + (endTime - startTime));
   }
 
 

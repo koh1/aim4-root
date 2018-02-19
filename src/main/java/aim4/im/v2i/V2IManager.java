@@ -62,6 +62,8 @@ import aim4.sim.StatCollector;
 import aim4.util.Registry;
 import aim4.util.TiledArea;
 
+import org.apache.log4j.Logger;
+
 /**
  * An intersection manager that takes requests from vehicles and coordinates
  * their traversals of the intersection to ensure that there are no
@@ -70,6 +72,7 @@ import aim4.util.TiledArea;
  */
 public class V2IManager extends IntersectionManager
                         implements V2IManagerCallback {
+	private Logger logger = Logger.getLogger(V2IManager.class);
 
   /////////////////////////////////
   // CONSTANTS
@@ -246,6 +249,7 @@ public class V2IManager extends IntersectionManager
 	int counter = 0;
 	
 	Iterator<V2IMessage> iter = inbox.iterator();
+	long stepStartTime = System.nanoTime();
 	while (iter.hasNext()) {
 		V2IMessage msg = iter.next();
 		if (msg.getTimeToBeReceived() <= currentTime) {
@@ -254,7 +258,10 @@ public class V2IManager extends IntersectionManager
 				System.err.printf("im %d process message of vin %d: %s\n", getId(), msg.getVin(), msg);
 			}
 			//System.out.print("inbox size: " + inbox.size() + " -> ");
+			long startTime = System.nanoTime();
 			processV2IMessage(msg);
+			long endTime = System.nanoTime();
+			logger.info("V2I_MSG_PROCESSED " + (endTime - startTime)/1000.0 + " " + msg.getVin());
 			//System.out.println(inbox.size());
 			counter += 1;
 		} else {
@@ -282,6 +289,8 @@ public class V2IManager extends IntersectionManager
     policy.act(timeStep);
     // Third, allow the reservation grid manager to act
     reservationGridManager.act(timeStep);
+    long stepEndTime = System.nanoTime();
+    logger.info("V2I_MSG_PROCESSED_PER_STEP " + (stepEndTime - stepStartTime)/1000.0);
     // Advance current time.
     super.act(timeStep);
   }

@@ -71,11 +71,13 @@ import aim4.vehicle.VehicleSpec;
 import aim4.vehicle.VinRegistry;
 import aim4.vehicle.VehicleSimView;
 
+import org.apache.log4j.Logger;
+
 /**
  * The autonomous drivers only simulator.
  */
 public class AutoDriverOnlySimulator implements Simulator {
-
+	private Logger logger = Logger.getLogger(AutoDriverOnlySimulator.class);
   /////////////////////////////////
   // NESTED CLASSES
   /////////////////////////////////
@@ -948,7 +950,7 @@ public class AutoDriverOnlySimulator implements Simulator {
       BasicAutoVehicle vsv = (BasicAutoVehicle) vinToVehicles.remove(vin);
       double v = currentTime - vsv.getSpawnTime();
       if (true) {
-    	  System.err.printf("%f, %d, VEHICLE_REMOVED, %f\n", currentTime, vsv.getVIN(), v);  
+    	  logger.info("VEHICLE_REMOVED " + currentTime + " " + vsv.getVIN() + " " + v);  
       }
       
       completedVINs.add(vin);

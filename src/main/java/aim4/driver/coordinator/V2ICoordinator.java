@@ -65,6 +65,9 @@ import aim4.vehicle.AutoVehicleDriverView;
 import aim4.vehicle.BasicAutoVehicle;
 import aim4.vehicle.VehicleUtil;
 
+import org.apache.log4j.Logger;
+
+
 /**
  * An agent that autonomously controls the coordination of a
  * {@link AutoVehicleDriverView} with other Vehicles and with
@@ -76,6 +79,8 @@ import aim4.vehicle.VehicleUtil;
  * reflect the current reservation status.
  */
 public class V2ICoordinator implements Coordinator {
+	
+	private Logger logger = Logger.getLogger(V2ICoordinator.class);
 
   /////////////////////////////////
   // CONSTANTS
@@ -922,6 +927,10 @@ public class V2ICoordinator implements Coordinator {
    */
   private int unacceptableCounter;
   private int conflictCounter;
+  
+  private double startAllocation;
+  private boolean isPlanning;
+  private boolean isAwaitingResponse;
 
 
   /////////////////////////////////
@@ -970,6 +979,9 @@ public class V2ICoordinator implements Coordinator {
     //MAX_EXPECTED_IM_REPLY_TIME = 0.5;
     unacceptableCounter = 0;
     conflictCounter = 0;
+    startAllocation = this.vehicle.gaugeTime();
+    isPlanning = false;
+    isAwaitingResponse = false;
   }
 
   
@@ -977,7 +989,7 @@ public class V2ICoordinator implements Coordinator {
   // PUBLIC METHODS
   /////////////////////////////////
   public String dumpStatus(String status) {
-	  return String.format("%f, %d, %s, %d, %d, %f", vehicle.gaugeTime(), vehicle.getVIN(), status, conflictCounter, unacceptableCounter, ((BasicAutoVehicle)vehicle).getLatencyGauge().read());
+	  return String.format("%s %f %d %d %d %f", status, vehicle.gaugeTime(), vehicle.getVIN(), conflictCounter, unacceptableCounter, ((BasicAutoVehicle)vehicle).getLatencyGauge().read());
   }
 
   /////////////////////////////////
@@ -1019,6 +1031,7 @@ public class V2ICoordinator implements Coordinator {
     boolean shouldContinue = true;
     while(shouldContinue) {
       if (stateHandlers.containsKey(state)) {
+
         shouldContinue = stateHandlers.get(state).perform();
       } else {
         throw new RuntimeException("Unknown state.");
@@ -1198,7 +1211,7 @@ public class V2ICoordinator implements Coordinator {
       vehicle.setAccelSchedule(as);
       setState(State.V2I_MAINTAINING_RESERVATION);
       if (true) {
-    	  System.err.printf("%s\n", dumpStatus("RESERVATION_CONFIRMED"));
+    	  logger.info(dumpStatus("RESERVATION_CONFIRMED"));
       }
     } else {
       // must cancel the reservation
@@ -1429,6 +1442,8 @@ public class V2ICoordinator implements Coordinator {
      * @return the estimated arrival parameters at the intersection
      */
     private ArrivalEstimationResult estimateArrival(double maxArrivalVelocity) {
+      long startTime = System.nanoTime();
+      long endTime = 0;
       // The basic parameters
       double time1 = vehicle.gaugeTime();
       double v1 = vehicle.gaugeVelocity();
@@ -1528,12 +1543,17 @@ public class V2ICoordinator implements Coordinator {
           System.err.printf("vin %d: arrival estimation failed: %s",
                             vehicle.getVIN(), e.getMessage());
         }
+        endTime = System.nanoTime();
+        logger.info("ARRIVAL_ESTIMATE_TIME(FAILED) " + (endTime - startTime) + " " + vehicle.getVIN());
         return null;
       }
       if (isDebugging) {
         System.err.printf("accelSchedule = %s\n", result.getAccelSchedule());
       }
+      endTime = System.nanoTime();
+      logger.info("ARRIVAL_ESTIMATE_TIME " + (endTime - startTime)/1000.0 + " " + vehicle.getVIN());
       return result;
+      
     }
 
     /**
@@ -1702,8 +1722,10 @@ public class V2ICoordinator implements Coordinator {
         }
       }
       if (proposals != null) {
+    	  
         sendRequestMessage(proposals);
         setState(State.V2I_AWAITING_RESPONSE);
+        logger.info(dumpStatus("AWAITING_RESPONSE"));
         return true;  // let the state controller for V2I_AWAITING_RESPONSE
                       // to control the vehicle.
       } else {
