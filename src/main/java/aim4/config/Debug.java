@@ -77,7 +77,7 @@ public class Debug {
   /**
    * Whether or not the vehicle is allowed to change lanes
    */
-  public static final boolean CAN_CHANGE_LANE = false;
+  public static final boolean CAN_CHANGE_LANE = true;
 
   /**
    * Whether or not the driver considers the expected time the IM takes

@@ -91,8 +91,8 @@ public class V2ICoordinator implements Coordinator {
    */
   private static final double MAX_CLOCK_ERROR = 0.5;
   
-  private static final double DEFAULT_LATENCY_TO_IM = 0.04;
-  //private static final double DEFAULT_LATENCY_TO_IM = 0.0;
+  //private static final double DEFAULT_LATENCY_TO_IM = 0.04;
+  private static final double DEFAULT_LATENCY_TO_IM = 0.0;
   private static final double DEFAULT_LATENCY_TO_IM_STD = 0.02;
   private static final double MAX_LATENCY_TO_IM = 0.1;
   private static final double MIN_LATENCY_TO_IM = 0.02;
@@ -154,11 +154,11 @@ public class V2ICoordinator implements Coordinator {
   /**
    * The maximum expected time that IM needs to reply a request message.
    */
-  //private static final double MAX_EXPECTED_IM_REPLY_TIME = 0.04;
+  private static final double MAX_EXPECTED_IM_REPLY_TIME = 0.04;
   //private static final double MAX_EXPECTED_IM_REPLY_TIME = 0.04 + DEFAULT_LATENCY_TO_IM*2;
   //private static final double MAX_EXPECTED_IM_REPLY_TIME = 0.04 + (DEFAULT_LATENCY_TO_IM+DEFAULT_LATENCY_TO_IM_STD)*2;
   //private static final double MAX_EXPECTED_IM_REPLY_TIME = 0.2;
-  private final double MAX_EXPECTED_IM_REPLY_TIME;
+  //private final double MAX_EXPECTED_IM_REPLY_TIME;
 
   /**
    * The slight reduction of the acceleration of the vehicle
@@ -974,8 +974,8 @@ public class V2ICoordinator implements Coordinator {
 
     // Set the intial state
     setState(State.V2I_PLANNING);
-    double delay = (Math.floor(((BasicAutoVehicle)vehicle).getLatencyGauge().read() / 0.02) + 1) * 0.02;
-    MAX_EXPECTED_IM_REPLY_TIME = delay + 0.04 + 0.04 + 0.04; // processing, response communication, margin?
+    //double delay = (Math.floor(((BasicAutoVehicle)vehicle).getLatencyGauge().read() / 0.02) + 1) * 0.02;
+    //MAX_EXPECTED_IM_REPLY_TIME = delay + 0.04 + 0.04 + 0.04; // processing, response communication, margin?
     //MAX_EXPECTED_IM_REPLY_TIME = 0.5;
     unacceptableCounter = 0;
     conflictCounter = 0;
