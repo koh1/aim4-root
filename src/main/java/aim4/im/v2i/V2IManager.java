@@ -101,10 +101,13 @@ public class V2IManager extends IntersectionManager
    */
   private static final double ACZ_DISTANCE_SHAPE_LENGTH = 1; // meter
   
-  private static final double DEFAULT_LATENCY_TO_VEHICLES = 0.04;
-  private static final double DEFAULT_LATENCY_TO_VEHICLES_STD = 0.02;
-  //private static final double DEFAULT_LATENCY_TO_VEHICLES = 0.0;
-  //private static final double DEFAULT_LATENCY_TO_VEHICLES_STD = 0.0;
+  /*
+   * Newly added for emulating network delay
+   */
+  //private static final double DEFAULT_LATENCY_TO_VEHICLES = 0.04;
+  //private static final double DEFAULT_LATENCY_TO_VEHICLES_STD = 0.02;
+  private static final double DEFAULT_LATENCY_TO_VEHICLES = 0.0;
+  private static final double DEFAULT_LATENCY_TO_VEHICLES_STD = 0.0;
 
 
   /////////////////////////////////
@@ -244,45 +247,47 @@ public class V2IManager extends IntersectionManager
    */
   @Override
   public void act(double timeStep) {
-	Collections.sort(inbox, new V2IMessageComparator());
-    // First, process all the incoming messages waiting for us
 	int counter = 0;
-	
-	Iterator<V2IMessage> iter = inbox.iterator();
-	long stepStartTime = System.nanoTime();
-	while (iter.hasNext()) {
-		V2IMessage msg = iter.next();
-		if (msg.getTimeToBeReceived() <= currentTime) {
-			//System.out.println(msg.getTimeToBeReceived() + " < " + currentTime);
+    long stepStartTime = System.nanoTime();	  
+	if (Debug.MODE.equals("NORMAL")) {
+		for (Iterator<V2IMessage> iter = inboxIterator(); iter.hasNext();) {
+			V2IMessage msg = iter.next();
 			if (Debug.isPrintIMInboxMessageOfVIN(msg.getVin())) {
 				System.err.printf("im %d process message of vin %d: %s\n", getId(), msg.getVin(), msg);
 			}
-			//System.out.print("inbox size: " + inbox.size() + " -> ");
 			long startTime = System.nanoTime();
 			processV2IMessage(msg);
 			long endTime = System.nanoTime();
 			logger.info("V2I_MSG_PROCESSED " + (endTime - startTime)/1000.0 + " " + msg.getVin());
-			//System.out.println(inbox.size());
 			counter += 1;
-		} else {
-			break;
+		}
+		clearInbox();		
+	} else if (Debug.MODE.equals("WITH_NW_DELAY")) {
+		Collections.sort(inbox, new V2IMessageComparator());
+	    // First, process all the incoming messages waiting for us
+		for (Iterator<V2IMessage> iter = inboxIterator(); iter.hasNext();) {
+			V2IMessage msg = iter.next();
+			if (msg.getTimeToBeReceived() <= currentTime) {
+				//System.out.println(msg.getTimeToBeReceived() + " < " + currentTime);
+				if (Debug.isPrintIMInboxMessageOfVIN(msg.getVin())) {
+					System.err.printf("im %d process message of vin %d: %s\n", getId(), msg.getVin(), msg);
+				}
+				//System.out.print("inbox size: " + inbox.size() + " -> ");
+				long startTime = System.nanoTime();
+				processV2IMessage(msg);
+				long endTime = System.nanoTime();
+				logger.info("V2I_MSG_PROCESSED " + (endTime - startTime)/1000.0 + " " + msg.getVin());
+				//System.out.println(inbox.size());
+				counter += 1;
+			} else {
+				break;
+				//because the inbox is sorted.
+			}
+		}
+		for (int i=0; i<counter; i++) {
+			inbox.remove(0);
 		}
 	}
-	//System.out.println("" + counter + " - " + inbox.size());
-	for (int i=0; i<counter; i++) {
-		inbox.remove(0);
-	}
-	/**
-    for(Iterator<V2IMessage> iter = inboxIterator(); iter.hasNext();) {
-      V2IMessage msg = iter.next();
-      if (Debug.isPrintIMInboxMessageOfVIN(msg.getVin())) {
-        System.err.printf("im %d process message of vin %d: %s\n",
-                          getId(), msg.getVin(), msg);
-      }
-      
-      processV2IMessage(msg);
-    }
-    **/
     // Done processing, clear the inbox.
 	//clearInbox();
     // Second, allow the policy to act, and send outgoing messages.
@@ -290,7 +295,7 @@ public class V2IManager extends IntersectionManager
     // Third, allow the reservation grid manager to act
     reservationGridManager.act(timeStep);
     long stepEndTime = System.nanoTime();
-    logger.info("V2I_MSG_PROCESSED_PER_STEP " + (stepEndTime - stepStartTime)/1000.0 + " " + counter);
+    logger.info("V2I_MSG_PROCESSED_PER_STEP " + (stepEndTime - stepStartTime)/1000.0 + " " + counter);		
     // Advance current time.
     super.act(timeStep);
   }
@@ -429,7 +434,7 @@ public class V2IManager extends IntersectionManager
   /**
    * Adds a message to the outgoing queue of messages to be delivered to a
    * Vehicle.
-   *
+   * SET THE TIME TO BE RECEIVED with setTimeToBeReceived
    * @param msg the message to send to a Vehicle
    */
   @Override
@@ -438,10 +443,12 @@ public class V2IManager extends IntersectionManager
       System.err.printf("im %d sends a message to vin %d: %s\n",
                         getId(), msg.getVin(), msg);
     }
-    msg.setTimestamp(currentTime);
-    msg.setTimeToBeReceived(currentTime+DEFAULT_LATENCY_TO_VEHICLES);
-    //latencyGauge.record(DEFAULT_LATENCY_TO_VEHICLES);
-    //msg.setTimeToBeReceived(currentTime+latencyGauge.read());
+    if (Debug.MODE.equals("WITH_NW_DELAY")) {
+        msg.setTimestamp(currentTime);
+        msg.setTimeToBeReceived(currentTime+DEFAULT_LATENCY_TO_VEHICLES);
+        //latencyGauge.record(DEFAULT_LATENCY_TO_VEHICLES);
+        //msg.setTimeToBeReceived(currentTime+latencyGauge.read());
+    }
     outbox.add(msg);
     bitsTransmitted += msg.getSize();
   }

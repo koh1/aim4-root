@@ -91,6 +91,10 @@ public class V2ICoordinator implements Coordinator {
    */
   private static final double MAX_CLOCK_ERROR = 0.5;
   
+  
+  /*
+   * Newly added for emulating network delay.
+   */
   //private static final double DEFAULT_LATENCY_TO_IM = 0.04;
   private static final double DEFAULT_LATENCY_TO_IM = 0.0;
   private static final double DEFAULT_LATENCY_TO_IM_STD = 0.02;
@@ -141,8 +145,9 @@ public class V2ICoordinator implements Coordinator {
   /**
    * The delay of sending another request message if the previous
    * preparation for sending a request message is failed.
+   * VARIABLE in order to avoid the higher request loads to IM
    */
-  private static final double SENDING_REQUEST_DELAY = 0.04;
+  private static final double SENDING_REQUEST_DELAY = 0.02;
   //private static final double SENDING_REQUEST_DELAY = 0.051;
 
   /**
@@ -153,6 +158,8 @@ public class V2ICoordinator implements Coordinator {
 
   /**
    * The maximum expected time that IM needs to reply a request message.
+   * VARIABLE according to the estimated latency for getting response.
+   * DEFAULT VALUE is static 0.04 (=40ms)
    */
   private static final double MAX_EXPECTED_IM_REPLY_TIME = 0.04;
   //private static final double MAX_EXPECTED_IM_REPLY_TIME = 0.04 + DEFAULT_LATENCY_TO_IM*2;

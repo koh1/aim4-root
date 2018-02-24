@@ -84,12 +84,16 @@ public class BasicAutoVehicle extends BasicVehicle
   public static final double DEFAULT_TRANSMISSION_POWER = 250; // meters
   
   
+  /* Newly added for network emulation
+   * 
+   */
   private static final double DEFAULT_LATENCY_TO_IM = 0.04;
   private static final double DEFAULT_LATENCY_TO_IM_STD = 0.02;
   private static final double MAX_LATENCY_TO_IM = 0.1;
   private static final double MIN_LATENCY_TO_IM = 0.02;
   //private static final double DEFAULT_LATENCY_TO_IM = 0.0;
   //private static final double DEFAULT_LATENCY_TO_IM_STD = 0.0;
+  
 
   /////////////////////////////////
   // PRIVATE FIELDS
@@ -529,26 +533,34 @@ public class BasicAutoVehicle extends BasicVehicle
   public List<I2VMessage> pollAllMessagesFromI2VInbox() {
     // TODO: many need to make this function atomic to avoid
     // putting messages in the queue and retrieve from it at the same time.
-    List<I2VMessage> msgs = new ArrayList<I2VMessage>(i2vInbox);
-    i2vInbox.clear();
-    List<I2VMessage> retArray = new ArrayList<I2VMessage>();
-    Collections.sort(msgs, new I2VMessageComparator());
-	Iterator<I2VMessage> iter = msgs.iterator();
-	I2VMessage msg;
-	while(iter.hasNext()) {
-		msg = iter.next();
-		if (msg.getTimeToBeReceived() <= currentTime) {
-			retArray.add(msg);
-		} else {
-			i2vInbox.add(msg);
-			break;
+	List<I2VMessage> msgs = new ArrayList<I2VMessage>(i2vInbox);	  
+	if (Debug.MODE.equals("WITH_NW_DELAY")) {
+	
+	    i2vInbox.clear();
+	    List<I2VMessage> retArray = new ArrayList<I2VMessage>();
+	    Collections.sort(msgs, new I2VMessageComparator());
+		Iterator<I2VMessage> iter = msgs.iterator();
+		I2VMessage msg;
+		while(iter.hasNext()) {
+			msg = iter.next();
+			if (msg.getTimeToBeReceived() <= currentTime) {
+				retArray.add(msg);
+			} else {
+				i2vInbox.add(msg);
+				break;
+			}
 		}
+		while(iter.hasNext()) {
+			I2VMessage m = iter.next();
+			i2vInbox.add(m);
+		}
+	    return retArray;
+	} else if (Debug.MODE.equals("NORMAL")) {
+		i2vInbox.clear();
+		return msgs;
+	} else {
+		return null;
 	}
-	while(iter.hasNext()) {
-		I2VMessage m = iter.next();
-		i2vInbox.add(m);
-	}
-    return retArray;
   }
 
 
@@ -560,11 +572,13 @@ public class BasicAutoVehicle extends BasicVehicle
     if (Debug.isPrintVehicleOutboxMessageOfVIN(msg.getVin())) {
       System.err.printf("vin %d sends message: %s\n", vin, msg);
     }
-    msg.setTimestamp(currentTime);
-    //msg.setTimeToBeReceived(currentTime+DEFAULT_LATENCY_TO_IM);
-    //latencyGauge.record(DEFAULT_LATENCY_TO_IM);
-    msg.setTimeToBeReceived(currentTime+latencyGauge.read()); // static for each vehicle
-    msg.setCommDelay(latencyGauge.read());
+    if (Debug.MODE.equals("WITH_NW_DELAY")) {
+        msg.setTimestamp(currentTime);
+        //msg.setTimeToBeReceived(currentTime+DEFAULT_LATENCY_TO_IM);
+        //latencyGauge.record(DEFAULT_LATENCY_TO_IM);
+        msg.setTimeToBeReceived(currentTime+latencyGauge.read()); // static for each vehicle
+        msg.setCommDelay(latencyGauge.read());
+    }
     v2iOutbox.add(msg);
     bitsTransmitted += msg.getSize();
     lastV2IMessage = msg;

@@ -86,6 +86,8 @@ public class Debug {
   public static final boolean IS_EXPECTED_IM_REPLY_TIME_CONSIDERED = true;
 
 
+  //public static final String MODE = "DEFAULT";
+  public static final String MODE = "WITH_NW_DELAY";
   /////////////////////////////////
   // PUBLIC STATIC METHODS
   /////////////////////////////////
